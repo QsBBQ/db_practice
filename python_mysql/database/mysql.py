@@ -1,6 +1,9 @@
 import MySQLdb as _mysql
 import collections
 import re
+import logging
+
+
 # import ipdb; ipdb.set_trace()
 
 # ONLY needs TO compile one TIME so we put here!
@@ -12,6 +15,16 @@ def is_number(string):
 class MySQLDatabase:
     #def __init__(self, database_name="mydb", username="codeuser", password="codeuser456", host='localhost'):
     def __init__(self, database_name, username, password, host):
+        # Is there a better way to do this?
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(log_formatter)
+        self.logger.addHandler(console_handler)
+        # self.logger.info("This is a test")
+        # self.logger.warning("This is a test")
         try:
             self.db = _mysql.connect(db=database_name,
                                     host=host,
@@ -20,36 +33,38 @@ class MySQLDatabase:
 
             self.database_name = database_name
 
-            print "Connected to MySQL!"
+            # print "Connected to MySQL!"
+            self.logger.info("Connected to MySQL!")
         except _mysql.Error, e:
             print e
 
     def __del__(self):
         if hasattr(self,'db'): # close our connection TO free it up IN the pool
             self.db.close()
-            print "MySQL Connection closed"
+            # print "MySQL Connection closed"
+            self.logger.info("MySQL Connection closed")
 
 
     def get_available_tables(self):
         cursor = self.db.cursor()
         cursor.execute("SHOW TABLES;")
+        self.logger.info("SHOW TABLES;")
 
         self.tables = cursor.fetchall()
-        # for row in self.tables:
-        #     print(row)
         cursor.close()
+
         return self.tables
 
 
     def get_columns_for_table(self, table_name):
         cursor = self.db.cursor()
         cursor.execute("SHOW COLUMNS FROM `%s`" % table_name)
+        self.logger.info("SHOW COLUMNS FROM `%s`" % table_name)
 
         columns = cursor.fetchall()
 
         cursor.close()
-        # for row in columns:
-        #     print(row)
+
         return columns
 
 
@@ -88,8 +103,10 @@ class MySQLDatabase:
 
         sql_str += ";" # finalise our SQL string
 
+        # Added Logging
+        self.logger.info(sql_str)
+
         cursor = self.db.cursor()
-        # import ipdb; ipdb.set_trace()
         cursor.execute(sql_str)
 
         if named_tuples:
@@ -98,7 +115,6 @@ class MySQLDatabase:
             results = cursor.fetchall()
 
         cursor.close()
-        print(results)
         return results
 
     def convert_to_named_tuples(self, cursor):
@@ -111,7 +127,7 @@ class MySQLDatabase:
             results = map(klass._make, cursor.fetchall())
         except _mysql.ProgrammingError:
             pass
-        # print(results)
+
         return results
 
     def delete(self, table, **wheres):
@@ -123,13 +139,15 @@ class MySQLDatabase:
                 if first_where_clause:
                     # this IS the FIRST WHERE clause
                     sql_str += " WHERE `%s`.`%s`%s" % (table, where, term)
-                    print(sql_str)
                     first_where_clause = False
                 else:
                     # this IS AND additional clause so USE AND
                     sql_str += " AND `%s`.`%s`%s" % (table, where, term)
 
         sql_str += ";"
+
+        # Added Logging
+        self.logger.info(sql_str)
 
         cursor = self.db.cursor()
         cursor.execute(sql_str)
@@ -164,6 +182,8 @@ class MySQLDatabase:
 
             sql_str += "%s %s" % (columns, values)
 
+            # Added Logging
+            self.logger.info(sql_str)
 
         cursor = self.db.cursor()
         cursor.execute(sql_str)
@@ -189,6 +209,9 @@ class MySQLDatabase:
 
         if where:
             sql_str += " WHERE %s" % where
+
+        # Added Logging
+        self.logger.info(sql_str)
 
         cursor = self.db.cursor()
         cursor.execute(sql_str)
