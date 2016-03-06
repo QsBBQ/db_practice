@@ -77,13 +77,13 @@ if __name__ == "__main__":
                        DbSettings.get('password'),
                        DbSettings.get('host'))
 
-
+    # Example
     # print(db.select("people",
     #       ["CONCAT(people.first_name, ' spends') AS First_Name, AVG(amount) AS Average"],
     #       True,
     #       join="orders on people.id = orders.person_id",
     #       where="person_id=1"))
-    
+
     # person_average("han")
     # add_person("Bob","Hope", "1/01/1910")
     # add_profile("Bob", "1 w. washington")
